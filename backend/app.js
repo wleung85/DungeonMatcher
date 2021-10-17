@@ -1,41 +1,62 @@
-var createError = require('http-errors');
-var express = require('express');
-var path = require('path');
-var cookieParser = require('cookie-parser');
-var logger = require('morgan');
+const express = require("express");
+const { createServer } = require("http")
+const { Server } = require("socket.io")
+const cors = require("cors")
+const PORT = process.env.PORT || 5000
 
-var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
+const { addUser, removeUser, getUser, getUsersInRoom } = require("./utils")
 
-var app = express();
+const app = express();
+app.use(cors());
 
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'jade');
+const server = createServer(app);
+const io = new Server(server);
 
-app.use(logger('dev'));
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
+io.on("connection", (socket) => {
+  socket.on("join", (data) => {
+    const { name, room } = data;
+    const { user, error } = addUser({ id: socket.id, name, room });
 
-app.use('/', indexRouter);
-app.use('/users', usersRouter);
+    if (error) {
+      console.log(error);
+      return;
+    }
 
-// catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  next(createError(404));
+    socket.emit("message", {
+      user: "admin",
+      text: `${user.name}, it's great to see you in here.`
+    })
+
+    socket.broadcast.to(user.room).emit("message", {
+      user: "admin",
+      text: `${user.name} has just landed to the room.`
+    })
+
+    socket.join(user.room);
+
+    io.to(user.room).emit("room-data", {
+      room: user.room,
+      users: getAllUsers(user.room),
+    })
+  })
+
+  socket.on("send-message", (message) => {
+    const user = getUser(socket.id);
+
+    io.to(user.room).emit("message", {
+      user: user.name,
+      text: message
+    });
+
+    io.to(user.room).emit("room-data", {
+      room: user.room,
+      users: getUsersInRoom(user.room)
+    })
+  })
 });
 
-// error handler
-app.use(function(err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
+app.get("/", (req, res) => res.send("Hello World"));
 
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
-});
-
-module.exports = app;
+server.listen(PORT, () =>
+  console.log(`Server is up and running on port ${PORT}...`)
+);

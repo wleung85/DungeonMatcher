@@ -1,5 +1,5 @@
 {
-  "name": "DungeonMasterFront",
+  "name": "dungeon-matcher-front",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
