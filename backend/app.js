@@ -38,7 +38,16 @@ io.on("connection", (socket) => {
       room: user.room,
       users: getAllUsers(user.room),
     })
-  })
+  });
+
+  socket.on("left", () => {
+    const user = removeUser(socket.id);
+
+    user && io.to(user.room).emit("message", {
+      user: "admin",
+      text: `${user.name} has just left!`
+    })
+  });
 
   socket.on("send-message", (message) => {
     const user = getUser(socket.id);
