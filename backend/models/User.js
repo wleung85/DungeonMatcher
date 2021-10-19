@@ -27,6 +27,26 @@ const UserSchema = new mongoose.Schema({
   isAdmin: {
     type: Boolean,
     default: false
+  },
+  matches: {
+    type: Array,
+    default: []
+  },
+  matchesPending: {
+    type: Array,
+    default: []
+  },
+  unmatched: {
+    type: Array,
+    default: []
+  },
+  friends: {
+    type: Array,
+    default: []
+  },
+  friendsPending: {
+    type: Array,
+    default: []
   }
 },
 {timestamps: true});
