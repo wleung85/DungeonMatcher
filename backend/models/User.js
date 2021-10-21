@@ -28,25 +28,25 @@ const UserSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  matches: {
-    type: Array,
-    default: []
-  },
-  matchesPending: {
-    type: Array,
-    default: []
-  },
-  unmatched: {
-    type: Array,
-    default: []
-  },
   friends: {
-    type: Array,
-    default: []
+    type: Map,
+    default: {}
   },
-  friendsPending: {
-    type: Array,
-    default: []
+  friendsInviteSent: {
+    type: Map,
+    default: {}
+  },
+  friendsInviteReceived: {
+    type: Map,
+    default: {}
+  },
+  blocked: {
+    type: Map,
+    default: {}
+  },
+  socialGroups: {
+    type: Map,
+    default: {}
   }
 },
 {timestamps: true});
