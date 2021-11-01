@@ -57,60 +57,6 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// // match a user
-// router.put("/:id/match", async (req, res) => {
-//   if (req.body.userId !== req.params.id) {
-//     try {
-//       const user = await User.findById(req.params.id);
-//       const currentUser = await User.findById(req.body.userId);
-//       if (user.friends.includes(req.body.userId)) {
-//         res.status(403).json("You are already friends with this user");
-//       } else if (user.matches.includes(req.body.userId)) {
-//         res.status(403).json("You have already matched this user");
-//       } else if (currentUser.matchesPending.includes(req.params.id)) {
-//         res.status(403).json("You have already tried to match this user");
-//       } else if (user.matchesPending.includes(req.body.userId)) {
-//         // Matching user found in other user's matchesPending, move to matches
-//         await user.updateOne({$pull: {matchesPending: req.body.userId},
-//                               $push: {matches: req.body.userId}});
-//         await currentUser.updateOne({$push: {matches: req.params.id}});
-//         res.status(200).json("Match found");
-//       } else {
-//         // Add to matches pending
-//         await currentUser.updateOne({$push: {matchesPending: req.params.id}});
-//         res.status(200).json("Attempted match processed");
-//       }
-//     } catch (err) {
-//       res.status(500).json(err);
-//     }
-//   } else {
-//     res.status(403).json("You can't match yourself");
-//   }
-// });
-
-// // unmatch a user
-// router.put("/:id/unmatch", async (req, res) => {
-//   if (req.body.userId !== req.params.id) {
-//     try {
-//       const user = await User.findById(req.params.id);
-//       const currentUser = await User.findById(req.body.userId);
-//       if (currentUser.unmatched.includes(req.params.id)) {
-//         res.status(403).json("User is already unmatched");
-//       } else {
-//         await user.updateOne({$pull: {matches: req.body.userId}});
-//         await currentUser.updateOne({$pull: {matchesPending: req.params.id,
-//                                              matches: req.params.id},
-//                                      $push: {unmatched: req.params.id}});
-//       }
-//       res.status(200).json("Unmatched user");
-//     } catch (err) {
-//       res.status(500).json(err);
-//     }
-//   } else {
-//     res.status(403).json("You can't unmatch yourself");
-//   }
-// });
-
 // friend a user
 router.put("/:id/friend", async (req, res) => {
   if (req.body.userId !== req.params.id) {
@@ -128,6 +74,8 @@ router.put("/:id/friend", async (req, res) => {
         currentUser.friendsInviteReceived.delete(req.params.id);
         currentUser.friends.set(req.params.id, "");
         await currentUser.save();
+
+        // TODO: Create pairConversation if doesn't already exist, set active if it does
         res.status(200).json("Friend added");
       } else if (currentUser.friendsInviteSent.has(req.params.id)) {
         res.status(403).json("Friend invite already sent");
@@ -158,16 +106,23 @@ router.put("/:id/unfriend", async (req, res) => {
       const user = await User.findById(req.params.id);
       const currentUser = await User.findById(req.body.userId);
       if (currentUser.friendsInviteSent.has(req.params.id)) {
-        await currentUser.updateOne({$pull: {friendsInviteSent: req.params.id}});
-        await user.updateOne({$pull: {friendsInviteReceived: req.body.userId}});
+        currentUser.friendsInviteSent.delete(req.params.id);
+        user.friendsInviteReceived.delete(req.body.userId);
+        await currentUser.save();
+        await user.save();
         res.status(200).json("Removed friend invite");
       } else if (user.friendsInviteSent.has(req.body.userId)) {
-        await user.updateOne({$pull: {friendsInviteSent: req.params.id}});
-        await currentUser.updateOne({$pull: {friendsInviteReceived: req.body.userId}});
+        await user.friendsInviteSent.delete(req.params.id);
+        await currentUser.friendsInviteReceived.delete(req.body.userId);
+        await currentUser.save();
+        await user.save();
         res.status(200).json("Rejected friend request");
       } else if (user.friends.has(req.body.userId)) {
-        await user.updateOne({$pull: {friends: req.body.userId}});
-        await currentUser.updateOne({$pull: {friends: req.params.id}});
+        await user.friends.delete(req.body.userId);
+        await currentUser.friends.delete(req.params.id);
+        await currentUser.save();
+        await user.save();
+        // TODO: mark pairConversation as inactive
         res.status(200).json("Removed friend");
       } else {
         res.status(403).json("User is not (pending) friend.");
@@ -189,9 +144,13 @@ router.put("/:id/block", async (req, res) => {
       const currentUser = await User.findById(req.body.userId);
       if (currentUser.blocked.has(req.params.id)) {
         res.status(403).json("User already blocked");
+      } else if (currentUser.friends.has(req.params.id) || 
+          currentUser.friendsInviteSent.has(req.params.id)) {
+        res.status(403).json("You cannot block a friend or someone who a friend invite was sent. Unblock user first.")
       } else {
-        await currentUser.updateOne({$push: {blocked: req.params.id}});
-        // TODO: Remove user from friends and social groups if they are there
+        await currentUser.blocked.set(req.params.id);
+        // TODO: Remove user from friends and set pairConversation as inactive
+        await currentUser.save();
         res.status(200).json("User blocked");
       } 
     } catch (err) {

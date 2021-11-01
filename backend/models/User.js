@@ -44,10 +44,14 @@ const UserSchema = new mongoose.Schema({
     type: Map,
     default: {}
   },
-  socialGroups: {
-    type: Map,
-    default: {}
-  }
+  authoredAdventures: {
+    type: Array,
+    default: []
+  },
+  conversations: {
+    type: Array,
+    default: []
+  },
 },
 {timestamps: true});
 
