@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
+const SearchProfile = require("../models/SearchProfile");
 
-const Adventure = new mongoose.Schema({
+const AdventureSchema = new mongoose.Schema({
   gameMaster: {
     type: ObjectId,
     required: True
@@ -12,4 +13,4 @@ const Adventure = new mongoose.Schema({
 },
 {timestamps: true});
 
-module.exports = mongoose.model("Adventure", Adventure);
+module.exports = SearchProfile.discriminator("Adventure", AdventureSchema);

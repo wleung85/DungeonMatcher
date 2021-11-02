@@ -1,6 +1,5 @@
 const router = require('express').Router();
 const User = require("../models/User");
-const SearchProfile = require("../models/SearchProfile");
 const bcrypt = require('bcrypt');
 
 // REGISTER
@@ -13,18 +12,12 @@ router.post('/register', async (req, res) => {
     const newUser = await new User({
       username: req.body.username,
       email: req.body.email,
-      password: hashedPassword
+      password: hashedPassword,
+      parentType: 'user',
     });
 
     // save user and respond
     const user = await newUser.save();
-
-    const newSearchProfile = await new SearchProfile({
-      parent: user._id,
-      parentType: 'user'
-    });
-    await newSearchProfile.save();
-
     res.status(200).json(user);
   } catch(err) {
     console.log(err);

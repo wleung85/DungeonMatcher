@@ -1,17 +1,13 @@
 const mongoose = require('mongoose');
 
-const SearchProfile = new mongoose.Schema({
+const SearchProfileSchema = new mongoose.Schema({
   matched: {
-    type: Map,
-    default: {},
+    type: Array,
+    default: [],
   },
   unmatched: {
-    type: Map,
-    default: {},
-  },
-  parent: {
-    type: mongoose.ObjectId,
-    required: true
+    type: Array,
+    default: [],
   },
   parentType: {
     type: String,
@@ -29,4 +25,4 @@ const SearchProfile = new mongoose.Schema({
 },
 {timestamps: true});
 
-module.exports = mongoose.model("SearchProfile", SearchProfile);
+module.exports = mongoose.model("SearchProfile", SearchProfileSchema);

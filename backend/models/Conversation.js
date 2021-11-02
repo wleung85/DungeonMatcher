@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
+const SearchProfile = require("../models/SearchProfile");
 
-const Conversation = new mongoose.Schema({
+const ConversationSchema = new mongoose.Schema({
   users: {
     type: Map,
     default: {},
@@ -21,4 +22,4 @@ const Conversation = new mongoose.Schema({
 },
 {timestamps: true});
 
-module.exports = mongoose.model("Conversation", Conversation);
+module.exports = SearchProfile.discriminator("Conversation", ConversationSchema);

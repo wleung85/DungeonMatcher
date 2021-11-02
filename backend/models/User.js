@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const SearchProfile = require("../models/SearchProfile");
 
 const UserSchema = new mongoose.Schema({
   username: {
@@ -29,20 +30,20 @@ const UserSchema = new mongoose.Schema({
     default: false
   },
   friends: {
-    type: Map,
-    default: {}
+    type: Array,
+    default: []
   },
   friendsInviteSent: {
-    type: Map,
-    default: {}
+    type: Array,
+    default: []
   },
   friendsInviteReceived: {
-    type: Map,
-    default: {}
+    type: Array,
+    default: []
   },
   blocked: {
-    type: Map,
-    default: {}
+    type: Array,
+    default: []
   },
   authoredAdventures: {
     type: Array,
@@ -52,7 +53,6 @@ const UserSchema = new mongoose.Schema({
     type: Array,
     default: []
   },
-},
-{timestamps: true});
+});
 
-module.exports = mongoose.model("User", UserSchema);
+module.exports = SearchProfile.discriminator("User", UserSchema);
