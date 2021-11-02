@@ -3,12 +3,16 @@ const SearchProfile = require("../models/SearchProfile");
 
 const AdventureSchema = new mongoose.Schema({
   gameMaster: {
-    type: ObjectId,
-    required: True
+    type: mongoose.ObjectId,
+    required: true
   },
   name: {
     type: String,
-    required: True
+    required: true
+  },
+  description: {
+    type: String,
+    default: ""
   }
 },
 {timestamps: true});

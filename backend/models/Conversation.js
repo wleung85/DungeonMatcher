@@ -3,13 +3,13 @@ const SearchProfile = require("../models/SearchProfile");
 
 const ConversationSchema = new mongoose.Schema({
   users: {
-    type: Map,
-    default: {},
+    type: Array,
+    default: [],
   },
   type: {
     type: String,
     enum: ['solo', 'pair', 'group'],
-    required: True
+    required: true
   },
   active: {
     type: Boolean,

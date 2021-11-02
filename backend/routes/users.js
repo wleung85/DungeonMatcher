@@ -50,9 +50,14 @@ router.delete("/:id", async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
-    const {password, updatedAt, blocked, conversations, matched, unmatched, 
-      parentType, ...other} = user._doc;
-    res.status(200).json(other);
+    if (user === null) {
+      return res.status(404).json("Specified user not found");
+    }
+    else {
+      const {password, updatedAt, blocked, conversations, matched, unmatched, 
+        parentType, ...other} = user._doc;
+      res.status(200).json(other);
+    }
   } catch (err) {
     res.status(500).json(err);
   }
