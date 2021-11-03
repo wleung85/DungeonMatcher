@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const SearchProfile = require("../models/SearchProfile");
+const Schema = mongoose.Schema;
 
 const UserSchema = new mongoose.Schema({
   username: {
@@ -30,28 +31,22 @@ const UserSchema = new mongoose.Schema({
     default: false
   },
   friends: {
-    type: Array,
-    default: []
+    type: [{type: Schema.Types.ObjectId, ref: 'User'}],
   },
   friendsInviteSent: {
-    type: Array,
-    default: []
+    type: [{type: Schema.Types.ObjectId, ref: 'User'}],
   },
   friendsInviteReceived: {
-    type: Array,
-    default: []
+    type: [{type: Schema.Types.ObjectId, ref: 'User'}],
   },
   blocked: {
-    type: Array,
-    default: []
+    type: [{type: Schema.Types.ObjectId, ref: 'User'}],
   },
   authoredAdventures: {
-    type: Array,
-    default: []
+    type: [{type: Schema.Types.ObjectId, ref: 'Adventure'}],
   },
   conversations: {
-    type: Array,
-    default: []
+    type: [{type: Schema.Types.ObjectId, ref: 'Conversation'}],
   },
 });
 

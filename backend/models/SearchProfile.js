@@ -1,13 +1,12 @@
 const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
 
 const SearchProfileSchema = new mongoose.Schema({
   matched: {
-    type: Array,
-    default: [],
+    type: [{type: Schema.Types.ObjectId, ref: 'SearchProfile'}],
   },
   unmatched: {
-    type: Array,
-    default: [],
+    type: [{type: Schema.Types.ObjectId, ref: 'SearchProfile'}],
   },
   parentType: {
     type: String,

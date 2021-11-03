@@ -1,9 +1,10 @@
 const mongoose = require('mongoose');
 const SearchProfile = require("../models/SearchProfile");
+const Schema = mongoose.Schema;
 
 const AdventureSchema = new mongoose.Schema({
   gameMaster: {
-    type: mongoose.ObjectId,
+    type: Schema.Types.ObjectId,
     required: true
   },
   name: {
