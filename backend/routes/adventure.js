@@ -18,7 +18,7 @@ router.post('/create', async (req, res) => {
     await User.findByIdAndUpdate(req.body.userId, {$push: {authoredAdventures: adventure._id}});
     return res.status(200).json(adventure);
   } catch (err) {
-    return res.status(500).json(err);
+    return res.status(500).json({message: err.message});
   }
 });
 
@@ -27,13 +27,13 @@ router.get('/:id', async (req, res) => {
   try {
     const adventure = await Adventure.findById(req.params.id);
     if (adventure === null) {
-      return res.status(404).json("Specified adventure not found");
+      return res.status(404).json({message: "Specified adventure not found"});
     }
     else {
       return res.status(200).json(adventure);
     }
   } catch (err) {
-    res.status(500).json(err);
+    res.status(500).json({message: err.message});
   }
 });
 
@@ -46,7 +46,7 @@ router.delete('/:id', async (req, res) => {
     return res.status(200).json(adventure);
   } catch (err) {
     console.log(err);
-    res.status(500).json(err);
+    res.status(500).json({message: err.message});
   }
 })
 
@@ -62,13 +62,13 @@ router.put('/:id', async (req, res) => {
       $set: req.body
     });
     if (adventure === null) {
-      res.status(404).json("Specified adventure not found");
+      res.status(404).json({message: "Specified adventure not found"});
     } else {
-      res.status(200).json("Adventure has been updated");
+      res.status(200).json({message: "Adventure has been updated"});
     }
 
   } catch (err) {
-    res.status(500).json(err);
+    res.status(500).json({message: err.message});
   }
 })
 
