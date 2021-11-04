@@ -6,6 +6,9 @@ const ConversationSchema = new mongoose.Schema({
   users: {
     type: [{type: Schema.Types.ObjectId, ref: 'User'}],
   },
+  chadAdmins: {
+    type: [{type: Schema.Types.ObjectId, ref: 'User'}],
+  },
   type: {
     type: String,
     enum: ['solo', 'pair', 'group'],
@@ -19,6 +22,10 @@ const ConversationSchema = new mongoose.Schema({
     type: Array,
     default: []
   },
+  anyoneCanAdd: {
+    type: Boolean,
+    default: true
+  }
 },
 {timestamps: true});
 

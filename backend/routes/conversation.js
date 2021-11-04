@@ -2,6 +2,20 @@ const Conversation = require("../models/Conversation");
 const User = require("../models/User");
 const router = require('express').Router();
 
+const verifyRelations = (userId, usersTba) => {
+  const currentUser = await User.findById(userId);
+  const allUserConvos = await Conversation.find({users: userId, active: true}, {users: 1})
+  const relatedUsers = new Set(allUserConvos.map((convo) => convo.users.map((id) => id.toString())).flat());
+  for (const userTba of usersTba) {
+    if (!currentUser.friends.includes(userTba) && 
+        !relatedUsers.has(userTba) &&
+        userTba !== req.body.userId) {
+      throw {message: "No relation with user found",
+             user: userTba};
+    }
+  }
+}
+
 // create a group conversation
 // TODO: user authentication
 router.post('/create', async (req, res) => {
@@ -35,23 +49,13 @@ router.post('/create', async (req, res) => {
     } 
 
     // Verify all users are related to currentUser either through friends or in an active conversation
-    const currentUser = await User.findById(req.body.userId);
-    const allUserConvos = await Conversation.find({users: req.body.userId, active: true}, {users: 1})
-    const relatedUsers = new Set(allUserConvos.map((convo) => convo.users.map((id) => id.toString())).flat());
-    for (const userTba of req.body.usersTba) {
-      if (!currentUser.friends.includes(userTba) && 
-          !relatedUsers.has(userTba) &&
-          userTba !== req.body.userId) {
-        return res.status(500).json({message: "No relation with user found",
-                                     user: userTba});
-      }
-    }
+    verifyRelations(req.body.userId, req.body.usersTba);
 
-    // Create conversation, if pair and conversation is inactive instead 
-    // make it active
     if (req.body.usersTba.length > 2) {
+      // Creating group conversation
       const newConversation = await new Conversation({
         users: [req.body.usersTba],
+        chatAdmins: [req.body.userId],
         type: 'group',
         parentType: 'group'
       })
@@ -59,16 +63,17 @@ router.post('/create', async (req, res) => {
       const conversation = await newConversation.save();
       return res.status(200).json(conversation);
     } else if (existingConvos === null) {
+      // Creating pair conversation
       const newConversation = await new Conversation({
         users: [req.body.usersTba],
         type: 'pair',
-        parentType: 'group'
+        parentType: 'group',
       })
   
       const conversation = await newConversation.save();
       return res.status(200).json(conversation);
     } else {
-      // Change pre-existing inactive conversation to active
+      // Change pre-existing inactive pair conversation to active
       const conversation = await Conversation.findOneAndUpdate({users: req.body.usersTba, 
                                                                 type: 'pair', 
                                                                 active: false}, 
@@ -79,6 +84,41 @@ router.post('/create', async (req, res) => {
   } catch (err) {
     return res.status(500).json({message: err.message});
   }
+});
+
+// Add user(s) to chat
+// TODO: User authentication
+router.put('/:id/addUsers', async (req, res) => {
+  try {
+    const conversation = await Conversation.findById(req.params.id);
+    if (!conversation.includes(req.body.userId)) {
+      return res.status(500).json({message: "You are not a part of this conversation!"});
+    } else if (conversation.type !== 'group') {
+      return res.status(500).json({message: "Users can only be added to group chats."});
+    } else if (conversation.anyoneCanAdd === true || 
+               !conversation.chatAdmins.includes(req.body.userId)) {
+      return res.status(500).json({message: "You are not allowed to add users to this covnersation."});
+    } else {
+      // Check if user is related to every member to be added
+      verifyRelations(req.body.userId, req.body.usersTba);
+
+      // Check if total number of users after adding is <= 50
+      const newUserArr = [new Set(...conversation.users, ...req.body.usersTba)];
+      if (newUserArr.length > 50) {
+        return res.status(500).json({message: "Group conversations are limited to 50 members."})
+      } else {
+        conversation.users = newUserArr;
+        await conversation.save();
+
+        // TODO: emit event to those added to group
+        return res.status(200).json(conversation);
+      }      
+    }
+
+  } catch (err) {
+    return res.status(500).json({message: err.message});
+  }
+
 });
 
 router.post('/debugCreate', async (req, res) => {
