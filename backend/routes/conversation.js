@@ -2,7 +2,7 @@ const Conversation = require("../models/Conversation");
 const User = require("../models/User");
 const router = require('express').Router();
 
-const verifyRelations = (userId, usersTba) => {
+const verifyRelations = async (userId, usersTba) => {
   const currentUser = await User.findById(userId);
   const allUserConvos = await Conversation.find({users: userId, active: true}, {users: 1})
   const relatedUsers = new Set(allUserConvos.map((convo) => convo.users.map((id) => id.toString())).flat());
@@ -34,7 +34,8 @@ router.post('/create', async (req, res) => {
     
     // Check if conversation with same members already exists
     const existingConvos = await Conversation.find({users: req.body.usersTba});
-    if (existingConvos !== null) {
+    console.log(existingConvos);
+    if (existingConvos !== null && existingConvos.length !== 0) {
       if (req.body.usersTba.length == 2) {
         const filteredExistingConvos = existingConvos.filter((convo) => convo.type === 'pair' && convo.active === true);
         if (filteredExistingConvos.length > 0) {
@@ -49,12 +50,12 @@ router.post('/create', async (req, res) => {
     } 
 
     // Verify all users are related to currentUser either through friends or in an active conversation
-    verifyRelations(req.body.userId, req.body.usersTba);
+    await verifyRelations(req.body.userId, req.body.usersTba);
 
     if (req.body.usersTba.length > 2) {
       // Creating group conversation
       const newConversation = await new Conversation({
-        users: [req.body.usersTba],
+        users: req.body.usersTba,
         chatAdmins: [req.body.userId],
         type: 'group',
         parentType: 'group'
@@ -65,7 +66,7 @@ router.post('/create', async (req, res) => {
     } else if (existingConvos === null) {
       // Creating pair conversation
       const newConversation = await new Conversation({
-        users: [req.body.usersTba],
+        users: req.body.usersTba,
         type: 'pair',
         parentType: 'group',
       })
@@ -100,7 +101,7 @@ router.put('/:id/addUsers', async (req, res) => {
       return res.status(500).json({message: "You are not allowed to add users to this covnersation."});
     } else {
       // Check if user is related to every member to be added
-      verifyRelations(req.body.userId, req.body.usersTba);
+      await verifyRelations(req.body.userId, req.body.usersTba);
 
       // Check if total number of users after adding is <= 50
       const newUserArr = [new Set(...conversation.users, ...req.body.usersTba)];
@@ -119,6 +120,41 @@ router.put('/:id/addUsers', async (req, res) => {
     return res.status(500).json({message: err.message});
   }
 
+});
+
+// Leave conversation
+// TODO: user authentication
+router.put('/:id/leave', async (req, res) => {
+  try {
+    const conversation = await Conversation.
+      findById(req.params.id).
+      populate('users', 'friends');
+    if (conversation === null) {
+      return res.status(500).json({message: "No conversation found."});
+    } else if (!conversation.users.some((user) => user._id.toString() === req.body.userId)) {
+      return res.status(500).json({message: "User not in conversation"});
+    } else if (conversation.active === false) {
+      return res.status(500).json({message: "Conversation is inactive"});
+    } else if (conversation.type === 'solo') {
+      return res.status(500).json({message: "Cannot leave solo conversation"});
+    } else if (conversation.type === 'pair') {
+      // Can't leave conversation if it's a pair conversation between friends
+      if (conversation.users[0].friends.includes(conversation.users[1]._id)) {
+        return res.status(500).json({message: "Cannot leave direct message between friends"});
+      } else {
+        // Leaving pair conversation by setting as inactive
+        // TODO: how to rejoin such a conversation
+        conversation.active = false;
+        await conversation.save();
+        return res.status(200).json({message: "Pair conversation made inactive"});
+      }
+    } else {
+      await Conversation.findByIdAndUpdate(req.params.id, {$pull: {users: req.body.userId}});
+      return res.status(200).json({message: "Left conversation"});
+    }
+  } catch (err) {
+    return res.status(500).json({message: err.message});
+  }
 });
 
 router.post('/debugCreate', async (req, res) => {

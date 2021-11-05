@@ -6,7 +6,7 @@ const ConversationSchema = new mongoose.Schema({
   users: {
     type: [{type: Schema.Types.ObjectId, ref: 'User'}],
   },
-  chadAdmins: {
+  chatAdmins: {
     type: [{type: Schema.Types.ObjectId, ref: 'User'}],
   },
   type: {
