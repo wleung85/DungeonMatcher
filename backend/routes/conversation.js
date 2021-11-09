@@ -1,6 +1,7 @@
 const Conversation = require("../models/Conversation");
 const User = require("../models/User");
 const router = require('express').Router();
+const { authenticateToken } = require('../middleware/authenticate');
 
 const verifyRelations = async (userId, usersTba) => {
   const currentUser = await User.findById(userId);
@@ -9,7 +10,7 @@ const verifyRelations = async (userId, usersTba) => {
   for (const userTba of usersTba) {
     if (!currentUser.friends.includes(userTba) && 
         !relatedUsers.has(userTba) &&
-        userTba !== req.body.userId) {
+        userTba !== userId) {
       throw {message: "No relation with user found",
              user: userTba};
     }
@@ -17,8 +18,7 @@ const verifyRelations = async (userId, usersTba) => {
 }
 
 // create a group conversation
-// TODO: user authentication
-router.post('/create', async (req, res) => {
+router.post('/create', authenticateToken, async (req, res) => {
   try {
     if (!("usersTba" in req.body) || req.body.usersTba.length === 0) {
       return res.status(500).json({message: "No passed in users to add."});
@@ -26,7 +26,7 @@ router.post('/create', async (req, res) => {
 
     // Remove duplicates and add calling user to list. Sort list so users in 
     // Conversation model are always listed in alphabetical order
-    req.body.usersTba = [...new Set([req.body.userId, ...req.body.usersTba])].sort();
+    req.body.usersTba = [...new Set([req.user.userId, ...req.body.usersTba])].sort();
     
     if (req.body.usersTba.length < 2 || req.body.usersTba.length > 50) {
       return res.status(500).json({message: "Group conversations can have at maximum 50 members"});
@@ -50,13 +50,13 @@ router.post('/create', async (req, res) => {
     } 
 
     // Verify all users are related to currentUser either through friends or in an active conversation
-    await verifyRelations(req.body.userId, req.body.usersTba);
+    await verifyRelations(req.user.userId, req.body.usersTba);
 
     if (req.body.usersTba.length > 2) {
       // Creating group conversation
       const newConversation = await new Conversation({
         users: req.body.usersTba,
-        chatAdmins: [req.body.userId],
+        chatAdmins: [req.user.userId],
         type: 'group',
         parentType: 'group'
       })
@@ -88,20 +88,19 @@ router.post('/create', async (req, res) => {
 });
 
 // Add user(s) to chat
-// TODO: User authentication
-router.put('/:id/addUsers', async (req, res) => {
+router.put('/:id/addUsers', authenticateToken, async (req, res) => {
   try {
     const conversation = await Conversation.findById(req.params.id);
-    if (!conversation.includes(req.body.userId)) {
+    if (!conversation.includes(req.user.userId)) {
       return res.status(500).json({message: "You are not a part of this conversation!"});
     } else if (conversation.type !== 'group') {
       return res.status(500).json({message: "Users can only be added to group chats."});
     } else if (conversation.anyoneCanAdd === true || 
-               !conversation.chatAdmins.includes(req.body.userId)) {
+               !conversation.chatAdmins.includes(req.user.userId)) {
       return res.status(500).json({message: "You are not allowed to add users to this covnersation."});
     } else {
       // Check if user is related to every member to be added
-      await verifyRelations(req.body.userId, req.body.usersTba);
+      await verifyRelations(req.user.userId, req.body.usersTba);
 
       // Check if total number of users after adding is <= 50
       const newUserArr = [new Set(...conversation.users, ...req.body.usersTba)];
@@ -123,15 +122,14 @@ router.put('/:id/addUsers', async (req, res) => {
 });
 
 // Leave conversation
-// TODO: user authentication
-router.put('/:id/leave', async (req, res) => {
+router.put('/:id/leave', authenticateToken, async (req, res) => {
   try {
     const conversation = await Conversation.
       findById(req.params.id).
       populate('users', 'friends');
     if (conversation === null) {
       return res.status(500).json({message: "No conversation found."});
-    } else if (!conversation.users.some((user) => user._id.toString() === req.body.userId)) {
+    } else if (!conversation.users.some((user) => user._id.toString() === req.user.userId)) {
       return res.status(500).json({message: "User not in conversation"});
     } else if (conversation.active === false) {
       return res.status(500).json({message: "Conversation is inactive"});
@@ -149,7 +147,7 @@ router.put('/:id/leave', async (req, res) => {
         return res.status(200).json({message: "Pair conversation made inactive"});
       }
     } else {
-      await Conversation.findByIdAndUpdate(req.params.id, {$pull: {users: req.body.userId}});
+      await Conversation.findByIdAndUpdate(req.params.id, {$pull: {users: req.user.userId}});
       return res.status(200).json({message: "Left conversation"});
     }
   } catch (err) {

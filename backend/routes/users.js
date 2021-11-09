@@ -1,12 +1,12 @@
 const User = require("../models/User");
 const router = require('express').Router();
 const bcrypt = require('bcrypt');
+const { authenticateToken } = require('../middleware/authenticate');
 
-// TODO: We want only user logging in to be able to update and delete
 
 // update user
-router.put("/:id", async (req, res) => {
-  if (req.body.userId === req.params.id || req.body.isAdmin) {
+router.put("/:id", authenticateToken, async (req, res) => {
+  if (req.user.userId === req.params.id || req.user.isAdmin) {
     if (req.body.password) {
       try {
         const salt = await bcrypt.genSalt(parseInt(process.env.BCRYPT_SALT_ROUNDS, 10));
@@ -30,8 +30,8 @@ router.put("/:id", async (req, res) => {
 });
 
 // delete user
-router.delete("/:id", async (req, res) => {
-  if (req.body.userId === req.params.id || req.body.isAdmin) {
+router.delete("/:id", authenticateToken, async (req, res) => {
+  if (req.user.userId === req.params.id || req.user.isAdmin) {
     try {
       const user = await User.findByIdAndDelete(req.params.id);
       res.status(200).json({message: "Account has been deleted"});
@@ -63,20 +63,20 @@ router.get("/:id", async (req, res) => {
 
 // friend a user
 // TODO: check if user is blocked
-router.put("/:id/friend", async (req, res) => {
-  if (req.body.userId !== req.params.id) {
+router.put("/:id/friend", authenticateToken, async (req, res) => {
+  if (req.user.userId !== req.params.id) {
     try {
       const user = await User.findById(req.params.id);
-      const currentUser = await User.findById(req.body.userId);
-      if (user.friends.includes(req.body.userId)) {
+      const currentUser = await User.findById(req.user.userId);
+      if (user.friends.includes(req.user.userId)) {
         res.status(403).json({message: "You are already friends with this user"});
-      } else if (currentUser.blocked.includes(req.body.userId)) {
+      } else if (currentUser.blocked.includes(req.user.userId)) {
         res.status(403).json({message: "Cannot send friend request to blocked user"});
-      } else if (user.friendsInviteSent.includes(req.body.userId)) {
+      } else if (user.friendsInviteSent.includes(req.user.userId)) {
         // Accepting friend request
         // Matching user found in other user's matchesPending, move to matches
-        await user.updateOne({$pull: {friendsInviteSent: req.body.userId},
-          $push: {friends: req.body.userId}});
+        await user.updateOne({$pull: {friendsInviteSent: req.user.userId},
+          $push: {friends: req.user.userId}});
         
         await currentUser.updateOne({$push: {friends: req.params.id}});
 
@@ -88,8 +88,8 @@ router.put("/:id/friend", async (req, res) => {
         // Add to friends pending
         await currentUser.updateOne({$push: {friendsInviteSent: req.params.id}})
         
-        if (!user.blocked.includes(req.body.userId)) 
-          await user.updateOne({$push: {friendsInviteReceived: req.body.userId}});
+        if (!user.blocked.includes(req.user.userId)) 
+          await user.updateOne({$push: {friendsInviteReceived: req.user.userId}});
         res.status(200).json({message: "Friend invite sent"});
       }
     } catch (err) {
@@ -102,21 +102,21 @@ router.put("/:id/friend", async (req, res) => {
 });
 
 // unfriend a user
-router.put("/:id/unfriend", async (req, res) => {
-  if (req.body.userId !== req.params.id) {
+router.put("/:id/unfriend", authenticateToken, async (req, res) => {
+  if (req.user.userId !== req.params.id) {
     try {
       const user = await User.findById(req.params.id);
-      const currentUser = await User.findById(req.body.userId);
+      const currentUser = await User.findById(req.user.userId);
       if (currentUser.friendsInviteSent.includes(req.params.id)) {
         await currentUser.updateOne({$pull: {friendsInviteSent: req.params.id}});
-        await user.updateOne({$pull: {friendsInviteReceived: req.body.userId}});
+        await user.updateOne({$pull: {friendsInviteReceived: req.user.userId}});
         res.status(200).json({message: "Removed friend invite"});
-      } else if (user.friendsInviteSent.includes(req.body.userId)) {
+      } else if (user.friendsInviteSent.includes(req.user.userId)) {
         await user.updateOne({$pull: {friendsInviteSent: req.params.id}});
-        await currentUser.updateOne({$pull: {friendsInviteReceived: req.body.userId}});
+        await currentUser.updateOne({$pull: {friendsInviteReceived: req.user.userId}});
         res.status(200).json({message: "Rejected friend request"});
-      } else if (user.friends.includes(req.body.userId)) {
-        await user.updateOne({$pull: {friends: req.body.userId}});
+      } else if (user.friends.includes(req.user.userId)) {
+        await user.updateOne({$pull: {friends: req.user.userId}});
         await currentUser.updateOne({$pull: {friends: req.params.id}});
         // TODO: mark pairConversation as inactive
         res.status(200).json({message: "Removed friend"});
@@ -132,11 +132,11 @@ router.put("/:id/unfriend", async (req, res) => {
 });
 
 // block a user
-router.put("/:id/block", async (req, res) => {
-  if (req.body.userId !== req.params.id) {
+router.put("/:id/block", authenticateToken, async (req, res) => {
+  if (req.user.userId !== req.params.id) {
     try {
       const user = await User.findById(req.params.id);
-      const currentUser = await User.findById(req.body.userId);
+      const currentUser = await User.findById(req.user.userId);
       if (currentUser.blocked.includes(req.params.id)) {
         res.status(403).json({message: "User already blocked"});
       } else if (currentUser.friends.includes(req.params.id) || 

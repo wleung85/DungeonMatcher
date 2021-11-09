@@ -18,7 +18,6 @@
 .env.test.local
 .env.production.local
 .env
-*.drawio
 
 *npm-debug.log*
 *yarn-debug.log*
@@ -29,3 +28,8 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 
+# draft designs
+*.drawio
+*.ai
+/design/inspo
+/design/illustrator
