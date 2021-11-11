@@ -1,5 +1,6 @@
 const router = require('express').Router();
 const User = require("../models/User");
+const UserToken = require("../models/UserToken");
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { authenticateToken } = require('../middleware/authenticate');
@@ -28,14 +29,14 @@ router.post('/register', async (req, res) => {
 
 const generateAccessToken = (user) => {
   return jwt.sign(
-    { userId: user._id, isAdmin: user.isAdmin }, 
+    { userId: user.userId, isAdmin: user.isAdmin }, 
     process.env.ACCESS_TOKEN_SECRET,
     { expiresIn: "15m"});
 }
 
 const generateRefreshToken = (user) => {
   return jwt.sign(
-    { userId: user._id, isAdmin: user.isAdmin }, 
+    { userId: user.userId, isAdmin: user.isAdmin }, 
     process.env.REFRESH_TOKEN_SECRET,
     { expiresIn: "30d"});
 }
@@ -51,10 +52,13 @@ router.post('/login', async (req, res) => {
     if (!validPassword)
       return res.status(400).json({message: "Wrong password"});
 
-    const accessToken = generateAccessToken(user);
-    const refreshToken = generateRefreshToken(user);
-    // TODO: push refresh token to database
-    res.status(200).json({accessToken: accessToken, refreshToken: refreshToken});
+    const userPayload = {userId: user._id, isAdmin: user.isAdmin}
+    const accessToken = generateAccessToken(userPayload);
+    const refreshToken = generateRefreshToken(userPayload);
+    UserToken.create({ userId: user._id, refreshToken: refreshToken }, (err) => {
+      if (err) return res.status(500).json({ message: err.message });
+      res.status(200).json({accessToken: accessToken, refreshToken: refreshToken});
+    });    
   } catch (err) {
     console.log(err);
     res.status(500).json({message: err.message});
@@ -68,12 +72,14 @@ router.post('/token', async (req, res) => {
   const refreshToken = req.body.token;
 
   // Send error if there is no token or is invalid
-  if (!refreshToken) return res.sendStatus(401);
+  if (!refreshToken) return res.status(400);
 
-  jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, (err, user) => {
-    if (err) return res.sendStatus(403);
-    // TODO: if refresh token is not in database, return error
-
+  jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, async (err, user) => {
+    if (err) return res.status(403);
+    const userTokenDoc = await UserToken.findOne({ refreshToken: refreshToken });
+    if (!userTokenDoc) return res.status(404).json({message: "No refresh token on server found"});
+    if (userTokenDoc.userId.toString() !== user.userId) return res.status(403).json({message: "Refresh token does not belong to passed in UserId"});
+    
     // If everything is okay, create new access token
     const newAccessToken = generateAccessToken(user);
     res.status(200).json({accessToken: newAccessToken});
@@ -81,9 +87,15 @@ router.post('/token', async (req, res) => {
 });
 
 // LOGOUT
-router.post('/logout', authenticateToken, (req, res) => {
-  // TODO: find and delete refresh token in database
-  res.status(200).json("Successfully logged out");
+router.post('/logout', authenticateToken, async (req, res) => {
+  try {
+    // Delete all refresh tokens that belong to user
+    await UserToken.deleteMany({user: req.user.userId});
+
+    res.status(200).json("Successfully logged out");
+  } catch (err) {
+    res.status(500).json({message: err.message});
+  }
 });
 
 module.exports = router;
