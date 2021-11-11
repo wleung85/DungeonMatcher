@@ -19,7 +19,7 @@ const SearchProfileSchema = new mongoose.Schema({
   },
   searchable: {
     type: Boolean,
-    default: true
+    default: false
   }
 },
 {timestamps: true});

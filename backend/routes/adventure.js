@@ -11,7 +11,6 @@ router.post('/create', authenticateToken, async (req, res) => {
       name: req.body.adventureName,
       description: req.body.adventureDescription,
       parentType: 'adventure',
-      searchable: false
     });
 
     const adventure = await newAdventure.save();
@@ -53,7 +52,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 
 // update an adventure
 // TODO: user authentication, check if calling user is author of adventure or isAdmin
-router.put('/:id', async (req, res) => {
+router.put('/:id', authenticateToken, async (req, res) => {
   try {
     if (req.body.gameMaster) {
       // Not allowed to change game Master
