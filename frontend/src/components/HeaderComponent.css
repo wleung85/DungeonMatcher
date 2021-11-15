@@ -1,0 +1,13 @@
+.header {
+  max-height: 55px;
+  background-color: white;
+}
+
+.header-logo {
+  margin-left: 30px;
+}
+
+.header-user {
+  float: right;
+  margin-right: 30px;
+}
