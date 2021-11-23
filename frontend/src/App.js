@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Main from './components/MainComponent';
 import Login from './pages/login/Login';
 import Header from './components/HeaderComponent';
+import Lfg from './pages/lfg/Lfg';
 
 const exampleUser = {
   userId: 'userIdExample',
@@ -17,7 +18,7 @@ function App() {
   return (
     <div className="App">
       <Header user={user}/>
-      <Login />
+      <Lfg />
     </div>
   );
 }

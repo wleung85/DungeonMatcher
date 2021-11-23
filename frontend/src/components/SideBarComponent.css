@@ -1,0 +1,55 @@
+.sidebar {
+  height: 100vh;
+  background-color: #3c014d;
+  width: 80px;
+  padding-top: 20%;
+  text-align: center;
+}
+
+@font-face {
+  font-family: 'icomoon';
+  src:  url('fonts/icomoon.eot?jgr3xv');
+  src:  url('fonts/icomoon.eot?jgr3xv#iefix') format('embedded-opentype'),
+    url('fonts/icomoon.ttf?jgr3xv') format('truetype'),
+    url('fonts/icomoon.woff?jgr3xv') format('woff'),
+    url('fonts/icomoon.svg?jgr3xv#icomoon') format('svg');
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
+[class^="icon-"], [class*=" icon-"] {
+  /* use !important to prevent issues with browser extensions that change fonts */
+  font-family: 'icomoon' !important;
+  speak: never;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+
+  /* Better Font Rendering =========== */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-d20_search:before {
+  content: "\e900";
+}
+
+.sidebar-btn {
+  width: 75%;
+  height: 50px;
+  font-size: xx-large;
+  background-color: transparent;
+  border: none;
+  color: white;
+}
+
+.sidebar-btn.active{
+  background-color: #d026ff;
+}
+
+.sidebar-btn:hover {
+  background-color: #b77bc7;
+}
