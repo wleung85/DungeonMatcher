@@ -1,8 +1,12 @@
 .sidebar {
   height: 100vh;
   background-color: #3c014d;
-  width: 80px;
-  padding-top: 20%;
+  width: 60px;
+  float: left;
+}
+
+.sidebar-contents {
+  padding-top: 150px;
   text-align: center;
 }
 
@@ -38,16 +42,18 @@
 }
 
 .sidebar-btn {
-  width: 75%;
-  height: 50px;
+  width: 100%;
+  height: 65px;
   font-size: xx-large;
   background-color: transparent;
   border: none;
-  color: white;
+  color: #6a3a78;
 }
 
 .sidebar-btn.active{
   background-color: #d026ff;
+  color: white;
+  border-left: solid white;
 }
 
 .sidebar-btn:hover {
